@@ -18,6 +18,10 @@ Please **open an issue first** to discuss any changes you'd like to make. This h
 - Use [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, etc.)
 - Ensure `swift build` and `swift test` pass before submitting
 
+## Releases
+
+Releases are automated. To trigger a release, add a `release-patch`, `release-minor`, or `release-major` label to your PR before merging to main. The workflow will bump the version, build a DMG, and create a GitHub Release.
+
 ## Requirements
 
 - macOS (AppKit is required for colour emoji rendering)

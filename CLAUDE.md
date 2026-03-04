@@ -26,3 +26,10 @@ Four source files, each with a single responsibility:
 - Tests use Swift Testing framework (`import Testing`, `@Test`, `#expect`)
 - All functions are free functions (no classes/structs beyond the CLI entry point)
 - `swift-argument-parser` 1.5.0+ for CLI parsing
+
+## Releases
+
+- Version tracked in `VERSION` file at repo root (semver, e.g. `1.0.0`)
+- Release workflow: `.github/workflows/release.yml`
+- Triggered by `release-patch`, `release-minor`, or `release-major` labels on merged PRs
+- Builds DMG via xcodegen + xcodebuild, creates GitHub Release with DMG attached

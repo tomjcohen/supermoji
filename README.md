@@ -36,6 +36,18 @@ swift build -c release
 cp .build/release/supermoji /usr/local/bin/
 ```
 
+## Releases
+
+Download the latest `.dmg` from [Releases](https://github.com/tomjcohen/supermoji/releases). Open the DMG and drag Supermoji to your Applications folder.
+
+To trigger a new release, add one of these labels to a PR before merging to main:
+
+| Label | Effect |
+|-------|--------|
+| `release-patch` | Bump `0.0.x` |
+| `release-minor` | Bump `0.x.0` |
+| `release-major` | Bump `x.0.0` |
+
 ## How it works
 
 Each emoji character is rendered individually into a bitmap using CoreText and the system Apple Color Emoji font, then assembled into an animated GIF using ImageIO. Single emoji produce a static (non-animating) GIF.
