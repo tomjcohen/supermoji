@@ -44,7 +44,7 @@ SupermojiKit targets macOS 13+. The Mac app requires macOS 14 (SwiftUI APIs).
 
 ## Releases
 
-- Version tracked in `VERSION` file at repo root (semver, e.g. `1.0.0`)
+- Version derived from latest git tag (e.g. `v1.1.0`), no VERSION file
 - Release workflow: `.github/workflows/release.yml`
 - Triggered by `release-patch`, `release-minor`, or `release-major` labels on merged PRs
 - Builds DMG via xcodegen + xcodebuild, creates GitHub Release with DMG attached

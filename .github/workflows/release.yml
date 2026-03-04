@@ -16,6 +16,8 @@ jobs:
       pr_title: ${{ steps.check.outputs.pr_title }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Check merged PR for release label
         id: check
@@ -59,13 +61,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ github.token }}
+          fetch-depth: 0
 
-      - name: Bump version
+      - name: Determine version from git tags
         id: version
         run: |
-          CURRENT=$(cat VERSION)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          # Get the latest version tag, default to 0.0.0 if none exist
+          LATEST=$(git tag --list 'v*' --sort=-v:refname | head -1 | sed 's/^v//')
+          if [ -z "$LATEST" ]; then
+            LATEST="0.0.0"
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
 
           case "${{ needs.check-release.outputs.bump }}" in
             major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
@@ -74,7 +81,6 @@ jobs:
           esac
 
           NEW="${MAJOR}.${MINOR}.${PATCH}"
-          echo -n "$NEW" > VERSION
           echo "version=$NEW" >> "$GITHUB_OUTPUT"
           echo "tag=v$NEW" >> "$GITHUB_OUTPUT"
 
@@ -82,9 +88,10 @@ jobs:
         run: brew install xcodegen
 
       - name: Update app version
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          VERSION=$(cat VERSION)
-          sed -i '' "s/MARKETING_VERSION: .*/MARKETING_VERSION: \"$VERSION\"/" project.yml
+          sed -i '' "s/MARKETING_VERSION: .*/MARKETING_VERSION: \"$APP_VERSION\"/" project.yml
 
       - name: Build app
         run: |
@@ -97,9 +104,11 @@ jobs:
 
       - name: Sign and package DMG
         id: dmg
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: |
           APP_PATH=".build/release-app/Build/Products/Release/Supermoji.app"
-          DMG_NAME="Supermoji-${{ steps.version.outputs.tag }}.dmg"
+          DMG_NAME="Supermoji-${RELEASE_TAG}.dmg"
 
           codesign --deep --force --sign "-" --options runtime "$APP_PATH"
 
@@ -110,17 +119,12 @@ jobs:
 
           echo "dmg_name=$DMG_NAME" >> "$GITHUB_OUTPUT"
 
-      - name: Commit version bump and tag
+      - name: Tag release
         env:
-          NEW_VERSION: ${{ steps.version.outputs.version }}
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add VERSION
-          git commit -m "chore: bump version to $NEW_VERSION"
           git tag "$RELEASE_TAG"
-          git push origin main --tags
+          git push origin "$RELEASE_TAG"
 
       - name: Create GitHub Release
         env:
