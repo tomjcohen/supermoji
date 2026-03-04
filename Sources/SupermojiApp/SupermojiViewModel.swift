@@ -40,6 +40,7 @@ final class SupermojiViewModel: ObservableObject {
     private var cgFrames: [CGImage] = []
     private var timer: Timer?
     private var renderTask: Task<Void, Never>?
+    private var copyGeneration: Int = 0
 
     var currentFrame: NSImage? {
         guard !frames.isEmpty else { return nil }
@@ -102,6 +103,9 @@ final class SupermojiViewModel: ObservableObject {
         let framesToWrite = cgFrames
         let delayMs = framesToWrite.count == 1 ? 0 : speed.rawValue
 
+        copyGeneration += 1
+        let generation = copyGeneration
+
         Task {
             do {
                 try writeGIF(frames: framesToWrite, delayMs: delayMs, to: tempURL)
@@ -113,7 +117,9 @@ final class SupermojiViewModel: ObservableObject {
 
                 self.copied = true
                 try? await Task.sleep(for: .seconds(1.5))
-                self.copied = false
+                if self.copyGeneration == generation {
+                    self.copied = false
+                }
             } catch {
                 // silently fail for now
             }
