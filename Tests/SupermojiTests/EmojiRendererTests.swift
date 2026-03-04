@@ -1,6 +1,6 @@
 import Testing
 import CoreGraphics
-@testable import supermoji
+@testable import SupermojiKit
 
 @Test func rendersSingleEmojiToImage() throws {
     let image = try renderEmoji("😀", size: 64)

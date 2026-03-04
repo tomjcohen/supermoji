@@ -1,5 +1,6 @@
 import ArgumentParser
 import Foundation
+import SupermojiKit
 
 @main
 struct Supermoji: ParsableCommand {
