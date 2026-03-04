@@ -28,6 +28,12 @@ Three SPM targets plus an Xcode-built Mac app:
 
 SupermojiKit targets macOS 13+. The Mac app requires macOS 14 (SwiftUI APIs).
 
+## Git Conventions
+
+- Use conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `chore:`, `docs:`
+- PR titles also use conventional commit format (e.g. `docs: restore plans`)
+- Always work in a git worktree (`.worktrees/`) for feature branches — never work directly on main
+
 ## Key Conventions
 
 - macOS-only (depends on AppKit for colour emoji rendering)
