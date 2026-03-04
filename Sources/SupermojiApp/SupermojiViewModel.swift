@@ -53,6 +53,7 @@ final class SupermojiViewModel: ObservableObject {
         let characters = splitEmoji(emojiText)
         guard !characters.isEmpty else {
             frames = []
+            cgFrames = []
             currentFrameIndex = 0
             return
         }

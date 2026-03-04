@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "supermoji",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v13)],
     products: [
         .library(name: "SupermojiKit", targets: ["SupermojiKit"]),
     ],
