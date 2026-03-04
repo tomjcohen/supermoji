@@ -1,4 +1,5 @@
 import ArgumentParser
+import Foundation
 
 @main
 struct Supermoji: ParsableCommand {
@@ -19,6 +20,22 @@ struct Supermoji: ParsableCommand {
     var output: String = "output.gif"
 
     mutating func run() throws {
-        print("supermoji: \(emoji) size=\(size) delay=\(delay) output=\(output)")
+        let characters = splitEmoji(emoji)
+
+        guard !characters.isEmpty else {
+            throw ValidationError("No emoji characters provided")
+        }
+
+        let frames = try characters.map { try renderEmoji($0, size: size) }
+        let outputURL = URL(fileURLWithPath: output)
+        let effectiveDelay = characters.count == 1 ? 0 : delay
+
+        try writeGIF(frames: frames, delayMs: effectiveDelay, to: outputURL)
+
+        if characters.count == 1 {
+            print("Wrote static GIF: \(output) (\(size)x\(size))")
+        } else {
+            print("Wrote animated GIF: \(output) (\(characters.count) frames, \(size)x\(size), \(delay)ms delay)")
+        }
     }
 }
