@@ -35,8 +35,8 @@ final class SupermojiViewModel: ObservableObject {
     @Published var speed: EmojiSpeed = .medium
     @Published var frames: [NSImage] = []
     @Published var currentFrameIndex: Int = 0
-    @Published var isRendering: Bool = false
 
+    private var cgFrames: [CGImage] = []
     private var timer: Timer?
     private var renderTask: Task<Void, Never>?
 
@@ -57,24 +57,25 @@ final class SupermojiViewModel: ObservableObject {
             return
         }
 
-        isRendering = true
         let pixelSize = size.rawValue
 
         renderTask = Task {
-            var rendered: [NSImage] = []
+            var renderedCG: [CGImage] = []
+            var renderedNS: [NSImage] = []
             for char in characters {
                 guard !Task.isCancelled else { return }
                 if let cgImage = try? renderEmoji(char, size: pixelSize) {
+                    renderedCG.append(cgImage)
                     let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: pixelSize, height: pixelSize))
-                    rendered.append(nsImage)
+                    renderedNS.append(nsImage)
                 }
             }
 
             guard !Task.isCancelled else { return }
 
-            self.frames = rendered
+            self.cgFrames = renderedCG
+            self.frames = renderedNS
             self.currentFrameIndex = 0
-            self.isRendering = false
             self.startAnimation()
         }
     }
@@ -93,8 +94,7 @@ final class SupermojiViewModel: ObservableObject {
     }
 
     func save() {
-        let characters = splitEmoji(emojiText)
-        guard !characters.isEmpty else { return }
+        guard !cgFrames.isEmpty else { return }
 
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.gif]
@@ -102,13 +102,12 @@ final class SupermojiViewModel: ObservableObject {
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
-        let pixelSize = size.rawValue
-        let delayMs = characters.count == 1 ? 0 : speed.rawValue
+        let framesToWrite = cgFrames
+        let delayMs = framesToWrite.count == 1 ? 0 : speed.rawValue
 
         Task {
             do {
-                let cgFrames = try characters.map { try renderEmoji($0, size: pixelSize) }
-                try writeGIF(frames: cgFrames, delayMs: delayMs, to: url)
+                try writeGIF(frames: framesToWrite, delayMs: delayMs, to: url)
             } catch {
                 // TODO: show alert on failure
             }

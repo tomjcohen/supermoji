@@ -51,7 +51,7 @@ struct ContentView: View {
                 }
                 .pickerStyle(.segmented)
                 .onChange(of: viewModel.speed) {
-                    viewModel.render()
+                    viewModel.startAnimation()
                 }
             }
 
