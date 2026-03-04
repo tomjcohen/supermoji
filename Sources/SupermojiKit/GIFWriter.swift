@@ -3,11 +3,11 @@ import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
 
-enum GIFError: Error, CustomStringConvertible {
+public enum GIFError: Error, CustomStringConvertible {
     case failedToCreateDestination
     case failedToFinalize
 
-    var description: String {
+    public var description: String {
         switch self {
         case .failedToCreateDestination: "Failed to create GIF destination"
         case .failedToFinalize: "Failed to finalize GIF file"
@@ -16,7 +16,7 @@ enum GIFError: Error, CustomStringConvertible {
 }
 
 /// Writes an array of CGImages as an animated (or static) GIF.
-func writeGIF(frames: [CGImage], delayMs: Int, to url: URL) throws {
+public func writeGIF(frames: [CGImage], delayMs: Int, to url: URL) throws {
     let frameCount = frames.count
     let isAnimated = frameCount > 1
 

@@ -1,11 +1,11 @@
 @preconcurrency import AppKit
 import CoreGraphics
 
-enum RenderError: Error, CustomStringConvertible {
+public enum RenderError: Error, CustomStringConvertible {
     case failedToCreateContext
     case failedToCreateImage
 
-    var description: String {
+    public var description: String {
         switch self {
         case .failedToCreateContext: "Failed to create graphics context"
         case .failedToCreateImage: "Failed to create image from context"
@@ -14,7 +14,7 @@ enum RenderError: Error, CustomStringConvertible {
 }
 
 /// Renders a single emoji character into a CGImage at the given pixel size.
-func renderEmoji(_ emoji: String, size: Int) throws -> CGImage {
+public func renderEmoji(_ emoji: String, size: Int) throws -> CGImage {
     let cgSize = CGFloat(size)
 
     guard let context = CGContext(

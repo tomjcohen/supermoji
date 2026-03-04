@@ -2,7 +2,7 @@ import Testing
 import Foundation
 import CoreGraphics
 import ImageIO
-@testable import supermoji
+@testable import SupermojiKit
 
 @Test func writesAnimatedGIF() throws {
     let frames = try ["😀", "😃", "😄"].map { try renderEmoji($0, size: 64) }

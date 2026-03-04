@@ -3,3 +3,4 @@
 *.xcodeproj/
 output.gif
 .DS_Store
+.worktrees/
