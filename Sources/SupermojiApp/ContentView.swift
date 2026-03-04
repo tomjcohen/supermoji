@@ -55,14 +55,25 @@ struct ContentView: View {
                 }
             }
 
-            // Save button
-            Button(action: viewModel.save) {
-                Label("Save GIF", systemImage: "square.and.arrow.down")
-                    .frame(maxWidth: .infinity)
+            // Action buttons
+            HStack(spacing: 12) {
+                Button(action: viewModel.copyToClipboard) {
+                    Label(viewModel.copied ? "Copied!" : "Copy",
+                          systemImage: viewModel.copied ? "checkmark" : "doc.on.doc")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .disabled(viewModel.frames.isEmpty)
+
+                Button(action: viewModel.save) {
+                    Label("Save GIF", systemImage: "square.and.arrow.down")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(viewModel.frames.isEmpty)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(viewModel.frames.isEmpty)
         }
         .padding(24)
         .frame(width: 380)

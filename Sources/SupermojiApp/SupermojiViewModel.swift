@@ -35,6 +35,7 @@ final class SupermojiViewModel: ObservableObject {
     @Published var speed: EmojiSpeed = .medium
     @Published var frames: [NSImage] = []
     @Published var currentFrameIndex: Int = 0
+    @Published var copied: Bool = false
 
     private var cgFrames: [CGImage] = []
     private var timer: Timer?
@@ -90,6 +91,31 @@ final class SupermojiViewModel: ObservableObject {
             Task { @MainActor in
                 guard let self, !self.frames.isEmpty else { return }
                 self.currentFrameIndex = (self.currentFrameIndex + 1) % self.frames.count
+            }
+        }
+    }
+
+    func copyToClipboard() {
+        guard !cgFrames.isEmpty else { return }
+
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("supermoji-clipboard.gif")
+        let framesToWrite = cgFrames
+        let delayMs = framesToWrite.count == 1 ? 0 : speed.rawValue
+
+        Task {
+            do {
+                try writeGIF(frames: framesToWrite, delayMs: delayMs, to: tempURL)
+                let data = try Data(contentsOf: tempURL)
+
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setData(data, forType: .init(UTType.gif.identifier))
+
+                self.copied = true
+                try? await Task.sleep(for: .seconds(1.5))
+                self.copied = false
+            } catch {
+                // silently fail for now
             }
         }
     }
