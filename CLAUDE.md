@@ -12,12 +12,21 @@ swift run supermoji 😀😃😄  # run with defaults (256px, 500ms, output.gif)
 
 ## Architecture
 
-Four source files, each with a single responsibility:
+Three SPM targets plus an Xcode-built Mac app:
 
-- `Sources/Supermoji/Supermoji.swift` — CLI entry point (ArgumentParser). Parses args, orchestrates pipeline.
-- `Sources/Supermoji/EmojiSplitter.swift` — `splitEmoji(_:)` splits input string into grapheme clusters.
-- `Sources/Supermoji/EmojiRenderer.swift` — `renderEmoji(_:size:)` renders one emoji to a CGImage via CoreText/AppKit.
-- `Sources/Supermoji/GIFWriter.swift` — `writeGIF(frames:delayMs:to:)` assembles CGImages into a GIF via ImageIO.
+**SupermojiKit** (library) — shared core logic:
+- `Sources/SupermojiKit/EmojiSplitter.swift` — `splitEmoji(_:)` splits input string into grapheme clusters.
+- `Sources/SupermojiKit/EmojiRenderer.swift` — `renderEmoji(_:size:)` renders one emoji to a CGImage via CoreText/AppKit.
+- `Sources/SupermojiKit/GIFWriter.swift` — `writeGIF(frames:delayMs:to:)` assembles CGImages into a GIF via ImageIO.
+
+**supermoji** (CLI executable) — `Sources/Supermoji/Supermoji.swift`. ArgumentParser entry point, depends on SupermojiKit.
+
+**SupermojiApp** (SwiftUI Mac app) — built via Xcode project (`project.yml` + xcodegen), not SPM:
+- `Sources/SupermojiApp/SupermojiApp.swift` — app entry point.
+- `Sources/SupermojiApp/ContentView.swift` — main UI (emoji input, preview, controls, save).
+- `Sources/SupermojiApp/SupermojiViewModel.swift` — rendering, animation, and save logic.
+
+SupermojiKit targets macOS 13+. The Mac app requires macOS 14 (SwiftUI APIs).
 
 ## Key Conventions
 
