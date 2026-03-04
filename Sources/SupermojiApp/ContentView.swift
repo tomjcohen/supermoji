@@ -4,11 +4,13 @@ struct ContentView: View {
     @StateObject private var viewModel = SupermojiViewModel()
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             // Emoji input
             TextField("Type emoji here...", text: $viewModel.emojiText)
-                .textFieldStyle(.roundedBorder)
-                .font(.title)
+                .textFieldStyle(.plain)
+                .font(.system(size: 32))
+                .padding(12)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
                 .onChange(of: viewModel.emojiText) {
                     viewModel.render()
                 }
@@ -16,40 +18,38 @@ struct ContentView: View {
             // Preview
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(.quaternary)
+                    .fill(.quinary)
 
                 if let frame = viewModel.currentFrame {
                     Image(nsImage: frame)
                         .resizable()
-                        .interpolation(.none)
+                        .interpolation(.high)
                         .aspectRatio(contentMode: .fit)
-                        .padding(24)
+                        .padding(32)
                 } else {
                     Text("Your emoji will appear here")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
                         .font(.body)
                 }
             }
-            .frame(height: 256)
+            .frame(height: 220)
 
             // Controls
-            HStack {
-                Picker("Size", selection: $viewModel.size) {
+            VStack(spacing: 12) {
+                LabeledPicker(title: "Size", selection: $viewModel.size) {
                     ForEach(EmojiSize.allCases, id: \.self) { size in
                         Text(size.label).tag(size)
                     }
                 }
-                .pickerStyle(.segmented)
                 .onChange(of: viewModel.size) {
                     viewModel.render()
                 }
 
-                Picker("Speed", selection: $viewModel.speed) {
+                LabeledPicker(title: "Speed", selection: $viewModel.speed) {
                     ForEach(EmojiSpeed.allCases, id: \.self) { speed in
                         Text(speed.label).tag(speed)
                     }
                 }
-                .pickerStyle(.segmented)
                 .onChange(of: viewModel.speed) {
                     viewModel.startAnimation()
                 }
@@ -65,6 +65,27 @@ struct ContentView: View {
             .disabled(viewModel.frames.isEmpty)
         }
         .padding(24)
-        .frame(width: 360)
+        .frame(width: 380)
+    }
+}
+
+struct LabeledPicker<SelectionValue: Hashable, Content: View>: View {
+    let title: String
+    @Binding var selection: SelectionValue
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 40, alignment: .trailing)
+
+            Picker(title, selection: $selection) {
+                content()
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        }
     }
 }
