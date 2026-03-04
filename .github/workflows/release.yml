@@ -77,6 +77,11 @@ jobs:
       - name: Install xcodegen
         run: brew install xcodegen
 
+      - name: Update app version
+        run: |
+          VERSION=$(cat VERSION)
+          sed -i '' "s/MARKETING_VERSION: .*/MARKETING_VERSION: \"$VERSION\"/" project.yml
+
       - name: Build app
         run: |
           xcodegen generate
@@ -102,19 +107,25 @@ jobs:
           echo "dmg_name=$DMG_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Commit version bump and tag
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add VERSION
-          git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
-          git tag "${{ steps.version.outputs.tag }}"
+          git commit -m "chore: bump version to $NEW_VERSION"
+          git tag "$RELEASE_TAG"
           git push origin main --tags
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          DMG_NAME: ${{ steps.dmg.outputs.dmg_name }}
+          PR_TITLE: ${{ needs.check-release.outputs.pr_title }}
         run: |
-          gh release create "${{ steps.version.outputs.tag }}" \
-            "${{ steps.dmg.outputs.dmg_name }}" \
-            --title "${{ steps.version.outputs.tag }}" \
-            --notes "${{ needs.check-release.outputs.pr_title }}"
+          gh release create "$RELEASE_TAG" \
+            "$DMG_NAME" \
+            --title "$RELEASE_TAG" \
+            --notes "$PR_TITLE"
