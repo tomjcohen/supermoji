@@ -1,0 +1,41 @@
+name: Supermoji
+options:
+  bundleIdPrefix: com.tomjcohen
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+
+packages:
+  supermoji:
+    path: .
+
+targets:
+  SupermojiApp:
+    type: application
+    platform: macOS
+    sources:
+      - path: SupermojiApp/Assets.xcassets
+    dependencies:
+      - package: supermoji
+        product: SupermojiApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tomjcohen.supermoji
+        PRODUCT_NAME: Supermoji
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_FILE: SupermojiApp/Info.plist
+        GENERATE_INFOPLIST_FILE: false
+        CODE_SIGN_ENTITLEMENTS: SupermojiApp/SupermojiApp.entitlements
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY: "-"
+          CODE_SIGN_STYLE: Automatic
+        Release:
+          CODE_SIGN_STYLE: Automatic
+    attributes:
+      SystemCapabilities:
+        com.apple.Sandbox:
+          enabled: 1
