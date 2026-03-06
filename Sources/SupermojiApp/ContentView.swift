@@ -203,12 +203,6 @@ struct ContentView: View {
         return true
     }
 
-    private func itemLabel(_ item: FrameSource) -> String {
-        switch item.kind {
-        case .emoji(let char): char
-        case .image(let url): url.lastPathComponent
-        }
-    }
 }
 
 struct ReorderDropDelegate: DropDelegate {
