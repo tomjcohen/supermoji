@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject private var viewModel = SupermojiViewModel()
     @State private var emojiInput: String = ""
     @State private var draggingItemID: UUID?
+    @State private var dragCleanupToken: UUID?
 
     var body: some View {
         VStack(spacing: 20) {
@@ -159,6 +160,7 @@ struct ContentView: View {
             item: item,
             items: $viewModel.items,
             draggingItemID: $draggingItemID,
+            dragCleanupToken: $dragCleanupToken,
             onReorder: { viewModel.render() }
         ))
     }
@@ -209,9 +211,11 @@ struct ReorderDropDelegate: DropDelegate {
     let item: FrameSource
     @Binding var items: [FrameSource]
     @Binding var draggingItemID: UUID?
+    @Binding var dragCleanupToken: UUID?
     var onReorder: () -> Void
 
     func dropEntered(info: DropInfo) {
+        dragCleanupToken = nil
         guard let draggingID = draggingItemID,
               draggingID != item.id,
               let fromIndex = items.firstIndex(where: { $0.id == draggingID }),
@@ -228,12 +232,22 @@ struct ReorderDropDelegate: DropDelegate {
     }
 
     func performDrop(info: DropInfo) -> Bool {
+        dragCleanupToken = nil
         draggingItemID = nil
         onReorder()
         return true
     }
 
-    func dropExited(info: DropInfo) {}
+    func dropExited(info: DropInfo) {
+        let token = UUID()
+        dragCleanupToken = token
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            if dragCleanupToken == token {
+                draggingItemID = nil
+                dragCleanupToken = nil
+            }
+        }
+    }
 
     func validateDrop(info: DropInfo) -> Bool {
         draggingItemID != nil
