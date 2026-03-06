@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @StateObject private var viewModel = SupermojiViewModel()
     @State private var emojiInput: String = ""
+    @State private var draggingItemID: UUID?
 
     var body: some View {
         VStack(spacing: 20) {
@@ -117,6 +118,8 @@ struct ContentView: View {
 
     @ViewBuilder
     private func frameSourceTile(_ item: FrameSource, at index: Int) -> some View {
+        let isDragging = draggingItemID == item.id
+
         ZStack(alignment: .topTrailing) {
             Group {
                 switch item.kind {
@@ -147,21 +150,17 @@ struct ContentView: View {
             .buttonStyle(.plain)
             .offset(x: 4, y: -4)
         }
-        .draggable(String(index)) {
-            Text(itemLabel(item))
-                .padding(4)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 4))
+        .opacity(isDragging ? 0.01 : 1.0)
+        .onDrag {
+            draggingItemID = item.id
+            return NSItemProvider(object: item.id.uuidString as NSString)
         }
-        .dropDestination(for: String.self) { dropped, _ in
-            guard let sourceStr = dropped.first,
-                  let sourceIndex = Int(sourceStr),
-                  sourceIndex != index else { return false }
-            withAnimation {
-                let destination = sourceIndex < index ? index + 1 : index
-                viewModel.moveItem(from: IndexSet(integer: sourceIndex), to: destination)
-            }
-            return true
-        }
+        .onDrop(of: [.text], delegate: ReorderDropDelegate(
+            item: item,
+            items: $viewModel.items,
+            draggingItemID: $draggingItemID,
+            onReorder: { viewModel.render() }
+        ))
     }
 
     private var addImageButton: some View {
@@ -209,6 +208,41 @@ struct ContentView: View {
         case .emoji(let char): char
         case .image(let url): url.lastPathComponent
         }
+    }
+}
+
+struct ReorderDropDelegate: DropDelegate {
+    let item: FrameSource
+    @Binding var items: [FrameSource]
+    @Binding var draggingItemID: UUID?
+    var onReorder: () -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let draggingID = draggingItemID,
+              draggingID != item.id,
+              let fromIndex = items.firstIndex(where: { $0.id == draggingID }),
+              let toIndex = items.firstIndex(where: { $0.id == item.id })
+        else { return }
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            items.move(fromOffsets: IndexSet(integer: fromIndex), toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingItemID = nil
+        onReorder()
+        return true
+    }
+
+    func dropExited(info: DropInfo) {}
+
+    func validateDrop(info: DropInfo) -> Bool {
+        draggingItemID != nil
     }
 }
 
