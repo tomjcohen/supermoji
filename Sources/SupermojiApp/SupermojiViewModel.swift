@@ -30,7 +30,7 @@ enum EmojiSpeed: Int, CaseIterable {
 
 @MainActor
 final class SupermojiViewModel: ObservableObject {
-    @Published var emojiText: String = ""
+    @Published var items: [FrameSource] = []
     @Published var size: EmojiSize = .medium
     @Published var speed: EmojiSpeed = .medium
     @Published var frames: [NSImage] = []
@@ -46,13 +46,29 @@ final class SupermojiViewModel: ObservableObject {
         return frames[currentFrameIndex % frames.count]
     }
 
+    func addEmoji(_ text: String) {
+        let characters = splitEmoji(text)
+        items.append(contentsOf: characters.map { .emoji($0) })
+        render()
+    }
+
+    func addImages(urls: [URL]) {
+        items.append(contentsOf: urls.map { .image($0) })
+        render()
+    }
+
+    func removeItem(at index: Int) {
+        guard items.indices.contains(index) else { return }
+        items.remove(at: index)
+        render()
+    }
+
     func render() {
         renderTask?.cancel()
         timer?.invalidate()
         timer = nil
 
-        let characters = splitEmoji(emojiText)
-        guard !characters.isEmpty else {
+        guard !items.isEmpty else {
             frames = []
             cgFrames = []
             currentFrameIndex = 0
@@ -60,13 +76,14 @@ final class SupermojiViewModel: ObservableObject {
         }
 
         let pixelSize = size.rawValue
+        let currentItems = items
 
         renderTask = Task {
             var renderedCG: [CGImage] = []
             var renderedNS: [NSImage] = []
-            for char in characters {
+            for item in currentItems {
                 guard !Task.isCancelled else { return }
-                if let cgImage = try? renderEmoji(char, size: pixelSize) {
+                if let cgImage = try? renderFrame(item, size: pixelSize) {
                     renderedCG.append(cgImage)
                     let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: pixelSize, height: pixelSize))
                     renderedNS.append(nsImage)
