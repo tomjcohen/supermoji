@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject private var viewModel = SupermojiViewModel()
     @State private var emojiInput: String = ""
     @State private var draggingItemID: UUID?
+    @State private var dragMonitor: Any?
 
     var body: some View {
         VStack(spacing: 20) {
@@ -153,6 +154,7 @@ struct ContentView: View {
         .opacity(isDragging ? 0.01 : 1.0)
         .onDrag {
             draggingItemID = item.id
+            installDragEndMonitor()
             return NSItemProvider(object: item.id.uuidString as NSString)
         }
         .onDrop(of: [.text], delegate: ReorderDropDelegate(
@@ -178,6 +180,30 @@ struct ContentView: View {
                 .background(.background, in: RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
+    }
+
+    private func installDragEndMonitor() {
+        removeDragEndMonitor()
+        dragMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseUp, .rightMouseUp, .keyDown]) { event in
+            if event.type == .keyDown && event.keyCode == 53 { // Escape
+                draggingItemID = nil
+                removeDragEndMonitor()
+            } else if event.type == .leftMouseUp || event.type == .rightMouseUp {
+                // Drag ended — reset after a brief delay to let performDrop fire first
+                DispatchQueue.main.async {
+                    draggingItemID = nil
+                    removeDragEndMonitor()
+                }
+            }
+            return event
+        }
+    }
+
+    private func removeDragEndMonitor() {
+        if let monitor = dragMonitor {
+            NSEvent.removeMonitor(monitor)
+            dragMonitor = nil
+        }
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
