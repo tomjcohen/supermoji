@@ -79,7 +79,7 @@ struct ContentView: View {
         VStack(spacing: 8) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
-                    ForEach(Array(viewModel.items.enumerated()), id: \.offset) { index, item in
+                    ForEach(Array(viewModel.items.enumerated()), id: \.element.id) { index, item in
                         frameSourceTile(item, at: index)
                     }
 
@@ -119,7 +119,7 @@ struct ContentView: View {
     private func frameSourceTile(_ item: FrameSource, at index: Int) -> some View {
         ZStack(alignment: .topTrailing) {
             Group {
-                switch item {
+                switch item.kind {
                 case .emoji(let char):
                     Text(char)
                         .font(.system(size: 24))
@@ -157,11 +157,8 @@ struct ContentView: View {
                   let sourceIndex = Int(sourceStr),
                   sourceIndex != index else { return false }
             withAnimation {
-                viewModel.items.move(
-                    fromOffsets: IndexSet(integer: sourceIndex),
-                    toOffset: sourceIndex < index ? index + 1 : index
-                )
-                viewModel.render()
+                let destination = sourceIndex < index ? index + 1 : index
+                viewModel.moveItem(from: IndexSet(integer: sourceIndex), to: destination)
             }
             return true
         }
@@ -185,6 +182,7 @@ struct ContentView: View {
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
+        let queue = DispatchQueue(label: "supermoji.drop")
         var urls: [URL] = []
         let group = DispatchGroup()
 
@@ -192,7 +190,7 @@ struct ContentView: View {
             group.enter()
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
                 if let url {
-                    urls.append(url)
+                    queue.sync { urls.append(url) }
                 }
                 group.leave()
             }
@@ -207,7 +205,7 @@ struct ContentView: View {
     }
 
     private func itemLabel(_ item: FrameSource) -> String {
-        switch item {
+        switch item.kind {
         case .emoji(let char): char
         case .image(let url): url.lastPathComponent
         }
