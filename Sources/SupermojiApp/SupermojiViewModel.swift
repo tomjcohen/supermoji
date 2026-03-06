@@ -63,11 +63,6 @@ final class SupermojiViewModel: ObservableObject {
         render()
     }
 
-    func moveItem(from source: IndexSet, to destination: Int) {
-        items.move(fromOffsets: source, toOffset: destination)
-        render()
-    }
-
     func render() {
         renderTask?.cancel()
         timer?.invalidate()
