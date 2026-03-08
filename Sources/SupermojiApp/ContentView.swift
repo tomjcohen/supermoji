@@ -1,19 +1,17 @@
 import SwiftUI
+import SupermojiKit
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @StateObject private var viewModel = SupermojiViewModel()
+    @State private var emojiInput: String = ""
+    @State private var draggingItemID: UUID?
+    @State private var dragMonitor: Any?
 
     var body: some View {
         VStack(spacing: 20) {
-            // Emoji input
-            TextField("Type emoji here...", text: $viewModel.emojiText)
-                .textFieldStyle(.plain)
-                .font(.system(size: 32))
-                .padding(12)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
-                .onChange(of: viewModel.emojiText) {
-                    viewModel.render()
-                }
+            // Sequence strip
+            sequenceStrip
 
             // Preview
             ZStack {
@@ -27,7 +25,7 @@ struct ContentView: View {
                         .aspectRatio(contentMode: .fit)
                         .padding(32)
                 } else {
-                    Text("Your emoji will appear here")
+                    Text("Add emoji or images to get started")
                         .foregroundStyle(.tertiary)
                         .font(.body)
                 }
@@ -77,6 +75,194 @@ struct ContentView: View {
         }
         .padding(24)
         .frame(width: 380)
+    }
+
+    private var sequenceStrip: some View {
+        VStack(spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(Array(viewModel.items.enumerated()), id: \.element.id) { index, item in
+                        frameSourceTile(item, at: index)
+                    }
+
+                    addImageButton
+                }
+                .padding(.horizontal, 4)
+                .padding(.vertical, 4)
+            }
+            .frame(height: 52)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+            .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                handleDrop(providers)
+            }
+
+            // Emoji text input
+            HStack(spacing: 8) {
+                TextField("Type emoji...", text: $emojiInput)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 20))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                    .onSubmit {
+                        guard !emojiInput.isEmpty else { return }
+                        viewModel.addEmoji(emojiInput)
+                        emojiInput = ""
+                    }
+
+                Text("press return to add")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func frameSourceTile(_ item: FrameSource, at index: Int) -> some View {
+        let isDragging = draggingItemID == item.id
+
+        ZStack(alignment: .topTrailing) {
+            Group {
+                switch item.kind {
+                case .emoji(let char):
+                    Text(char)
+                        .font(.system(size: 24))
+                case .image(let url):
+                    if let nsImage = NSImage(contentsOf: url) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } else {
+                        Image(systemName: "photo")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .frame(width: 40, height: 40)
+            .background(.background, in: RoundedRectangle(cornerRadius: 6))
+
+            Button {
+                viewModel.removeItem(at: index)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .offset(x: 4, y: -4)
+        }
+        .opacity(isDragging ? 0.01 : 1.0)
+        .onDrag {
+            draggingItemID = item.id
+            installDragEndMonitor()
+            return NSItemProvider(object: item.id.uuidString as NSString)
+        }
+        .onDrop(of: [.text], delegate: ReorderDropDelegate(
+            item: item,
+            items: $viewModel.items,
+            draggingItemID: $draggingItemID,
+            onReorder: { viewModel.render() }
+        ))
+    }
+
+    private var addImageButton: some View {
+        Button {
+            let panel = NSOpenPanel()
+            panel.allowedContentTypes = [.png, .jpeg, .tiff, .heic]
+            panel.allowsMultipleSelection = true
+            guard panel.runModal() == .OK else { return }
+            viewModel.addImages(urls: panel.urls)
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 40, height: 40)
+                .background(.background, in: RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func installDragEndMonitor() {
+        removeDragEndMonitor()
+        dragMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseUp, .rightMouseUp, .keyDown]) { event in
+            if event.type == .keyDown && event.keyCode == 53 { // Escape
+                draggingItemID = nil
+                removeDragEndMonitor()
+            } else if event.type == .leftMouseUp || event.type == .rightMouseUp {
+                // Drag ended — reset after a brief delay to let performDrop fire first
+                DispatchQueue.main.async {
+                    draggingItemID = nil
+                    removeDragEndMonitor()
+                }
+            }
+            return event
+        }
+    }
+
+    private func removeDragEndMonitor() {
+        if let monitor = dragMonitor {
+            NSEvent.removeMonitor(monitor)
+            dragMonitor = nil
+        }
+    }
+
+    private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
+        let queue = DispatchQueue(label: "supermoji.drop")
+        var urls: [URL] = []
+        let group = DispatchGroup()
+
+        for provider in providers {
+            group.enter()
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                if let url {
+                    queue.sync { urls.append(url) }
+                }
+                group.leave()
+            }
+        }
+
+        group.notify(queue: .main) {
+            if !urls.isEmpty {
+                viewModel.addImages(urls: urls)
+            }
+        }
+        return true
+    }
+
+}
+
+struct ReorderDropDelegate: DropDelegate {
+    let item: FrameSource
+    @Binding var items: [FrameSource]
+    @Binding var draggingItemID: UUID?
+    var onReorder: () -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let draggingID = draggingItemID,
+              draggingID != item.id,
+              let fromIndex = items.firstIndex(where: { $0.id == draggingID }),
+              let toIndex = items.firstIndex(where: { $0.id == item.id })
+        else { return }
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            items.move(fromOffsets: IndexSet(integer: fromIndex), toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingItemID = nil
+        onReorder()
+        return true
+    }
+
+    func dropExited(info: DropInfo) {}
+
+    func validateDrop(info: DropInfo) -> Bool {
+        draggingItemID != nil
     }
 }
 
