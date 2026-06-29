@@ -7,8 +7,18 @@ Swift CLI that generates animated or static GIFs from emoji, using Apple Color E
 ```bash
 swift build          # build
 swift test           # run all tests
-swift run supermoji 😀😃😄  # run with defaults (256px, 500ms, output.gif)
+swift run supermoji 😀😃😄              # animate (default): frame-swap GIF, 256px/500ms
+swift run supermoji fade ⚪ 🔵          # cross-fade ping-pong loop, 128px (Slack-tuned)
+swift run supermoji still 🔴            # single emoji → static GIF, 128px
 ```
+
+## Subcommands
+
+- `animate` (default) — N mixed emoji/image inputs → frame-swap GIF. Default subcommand, so a bare `supermoji 😀😃😄` still routes here. `--size 256`, `--delay 500`.
+- `fade <A> <B>` — cross-fade between exactly two emoji and back, as a seamless looping GIF. `--curve {linear,ease-in,ease-out,ease-in-out}` (default ease-in-out), `--fps 20`, `--duration 0.6` (one-way seconds), `--size 128`.
+- `still <A>` — render one emoji as a static GIF via the same renderer as `fade`, so stills and fades render at a uniform size as Slack custom emoji.
+
+`fade` and `still` share `renderEmojiFrame` and default to 128px; both warn (stderr) if the output exceeds Slack's 128 KB custom-emoji limit. See `docs/plans/2026-06-29-fade-and-still-gif.md`.
 
 ## Architecture
 
@@ -20,8 +30,10 @@ Three SPM targets plus an Xcode-built Mac app:
 - `Sources/SupermojiKit/GIFWriter.swift` — `writeGIF(frames:delayMs:to:)` assembles CGImages into a GIF via ImageIO.
 - `Sources/SupermojiKit/FrameSource.swift` — `FrameSource` struct (`.emoji`/`.image`) and `renderFrame(_:size:)` dispatcher.
 - `Sources/SupermojiKit/ImageLoader.swift` — `loadImage(from:size:)` loads and scales image files via ImageIO.
+- `Sources/SupermojiKit/EasingCurve.swift` — `EasingCurve` enum (linear/ease-in/ease-out/ease-in-out) with `apply(_:)`.
+- `Sources/SupermojiKit/Fade.swift` — `renderEmojiFrame(_:size:supersample:)` (shared supersampled renderer), `blend(_:_:t:)` (premultiplied-alpha cross-dissolve), `fadeTSchedule(forwardFrames:)` (ping-pong t schedule), `makeFadeFrames(from:to:curve:fps:duration:size:)` orchestrator.
 
-**supermoji** (CLI executable) — `Sources/Supermoji/Supermoji.swift`. ArgumentParser entry point, accepts mixed emoji and image file path arguments. Depends on SupermojiKit.
+**supermoji** (CLI executable) — `Sources/Supermoji/Supermoji.swift`. ArgumentParser entry point with `animate` (default), `fade`, and `still` subcommands. Depends on SupermojiKit.
 
 **SupermojiApp** (SwiftUI Mac app) — built via Xcode project (`project.yml` + xcodegen), not SPM:
 - `Sources/SupermojiApp/SupermojiApp.swift` — app entry point.
