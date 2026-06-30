@@ -20,7 +20,7 @@ swift run supermoji still 🔴            # single emoji → static GIF, 128px
 
 The fade is rendered and composited at a high internal working resolution (`max(size, 160) × supersample`, where 160 is Apple Color Emoji's native strike) and only the final frames are downscaled to `--size` — so the cross-dissolve and edges stay smooth. Raise `--supersample` for more anti-aliasing at the cost of render time.
 
-`fade` and `still` share `renderEmojiFrame` and default to 128px; both warn (stderr) if the output exceeds Slack's 128 KB custom-emoji limit. See `docs/plans/2026-06-29-fade-and-still-gif.md`.
+`fade` and `still` share `renderEmojiFrame` and default to 128px; both warn (stderr) if the output exceeds Slack's 128 KB custom-emoji limit.
 
 ## Architecture
 
