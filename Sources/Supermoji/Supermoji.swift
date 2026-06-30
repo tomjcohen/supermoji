@@ -83,6 +83,13 @@ struct Fade: ParsableCommand {
     @Option(name: .shortAndLong, help: "Output file path")
     var output: String = "output.gif"
 
+    func validate() throws {
+        guard fps >= 1 else { throw ValidationError("--fps must be at least 1") }
+        guard duration > 0 else { throw ValidationError("--duration must be greater than 0") }
+        guard size >= 1 else { throw ValidationError("--size must be at least 1") }
+        guard supersample >= 1 else { throw ValidationError("--supersample must be at least 1") }
+    }
+
     mutating func run() throws {
         try requireMacOS()
         let emoji = try graphemes(inputs, count: 2)
@@ -118,6 +125,11 @@ struct Still: ParsableCommand {
 
     @Option(name: .shortAndLong, help: "Output file path")
     var output: String = "output.gif"
+
+    func validate() throws {
+        guard size >= 1 else { throw ValidationError("--size must be at least 1") }
+        guard supersample >= 1 else { throw ValidationError("--supersample must be at least 1") }
+    }
 
     mutating func run() throws {
         try requireMacOS()
