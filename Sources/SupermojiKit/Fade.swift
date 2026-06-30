@@ -42,18 +42,34 @@ private func makeImage(from buffer: [UInt8], width: Int, height: Int) throws -> 
     }
 }
 
+/// Downscales (or copies) an image to a square `size` with high-quality interpolation.
+private func downscaled(_ image: CGImage, to size: Int) throws -> CGImage {
+    try makeImage(from: rasterize(image, width: size, height: size), width: size, height: size)
+}
+
+/// Largest native bitmap strike of Apple Color Emoji — its embedded glyph PNGs
+/// are 160×160, so there is no finer source detail than this.
+public let appleColorEmojiNativeResolution = 160
+
+/// The internal resolution the glyph is rendered and the fade is composited at,
+/// before the final frames are downscaled to the requested output size.
+///
+/// Floored to the native strike so even small outputs draw from the full source
+/// detail, then supersampled so the downscale has many sub-pixel samples to
+/// average — this is what makes edges and the cross-dissolve look smooth.
+public func workingResolution(for size: Int, supersample: Int) -> Int {
+    max(size, appleColorEmojiNativeResolution) * max(1, supersample)
+}
+
 /// Renders an emoji to a crisp RGBA8 premultiplied-last frame at `size` pixels.
 ///
-/// The glyph is drawn at `size × supersample` and downscaled with high-quality
-/// interpolation. Apple Color Emoji is a bitmap face (native strike ≈160px), so
-/// supersampling mainly improves edge anti-aliasing — but routing every frame
-/// through one renderer guarantees that a `still` and a `fade` endpoint of the
-/// same emoji at the same size are byte-identical.
-public func renderEmojiFrame(_ emoji: String, size: Int, supersample: Int = 2) throws -> CGImage {
-    let factor = max(1, supersample)
-    let rendered = try renderEmoji(emoji, size: size * factor)
-    let bytes = try rasterize(rendered, width: size, height: size)
-    return try makeImage(from: bytes, width: size, height: size)
+/// The glyph is drawn at ``workingResolution(for:supersample:)`` and downscaled
+/// with high-quality interpolation. Routing every frame through one renderer
+/// guarantees that a `still` and a `fade` endpoint of the same emoji at the same
+/// size are byte-identical.
+public func renderEmojiFrame(_ emoji: String, size: Int, supersample: Int = 3) throws -> CGImage {
+    let work = workingResolution(for: size, supersample: supersample)
+    return try downscaled(renderEmoji(emoji, size: work), to: size)
 }
 
 /// Cross-dissolves two same-sized images by linearly interpolating every channel
@@ -83,17 +99,21 @@ public func fadeForwardFrames(fps: Int, duration: Double) -> Int {
 
 /// Builds the full ping-pong frame sequence for a cross-fade between two emoji.
 ///
-/// Renders each endpoint once via ``renderEmojiFrame(_:size:supersample:)``,
-/// then blends one frame per scheduled `t` (after applying `curve`). The result
+/// The endpoints are rendered and the whole cross-dissolve is composited at the
+/// high ``workingResolution(for:supersample:)``; only the final frames are
+/// downscaled to `size`. Computing the blend at full fidelity (rather than at
+/// the output size) is what keeps the transition and edges smooth. The result
 /// loops seamlessly when written with a forever-looping GIF.
 public func makeFadeFrames(
-    from a: String, to b: String, curve: EasingCurve, fps: Int, duration: Double, size: Int
+    from a: String, to b: String, curve: EasingCurve, fps: Int, duration: Double,
+    size: Int, supersample: Int = 3
 ) throws -> [CGImage] {
+    let work = workingResolution(for: size, supersample: supersample)
+    let frameA = try renderEmoji(a, size: work)
+    let frameB = try renderEmoji(b, size: work)
     let forwardFrames = fadeForwardFrames(fps: fps, duration: duration)
-    let frameA = try renderEmojiFrame(a, size: size)
-    let frameB = try renderEmojiFrame(b, size: size)
     return try fadeTSchedule(forwardFrames: forwardFrames).map { t in
-        try blend(frameA, frameB, t: curve.apply(t))
+        try downscaled(blend(frameA, frameB, t: curve.apply(t)), to: size)
     }
 }
 

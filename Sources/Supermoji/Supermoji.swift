@@ -77,6 +77,9 @@ struct Fade: ParsableCommand {
     @Option(name: .long, help: "Size in pixels (square)")
     var size: Int = 128
 
+    @Option(name: .long, help: "Internal supersampling factor for smoother output")
+    var supersample: Int = 3
+
     @Option(name: .shortAndLong, help: "Output file path")
     var output: String = "output.gif"
 
@@ -84,7 +87,8 @@ struct Fade: ParsableCommand {
         try requireMacOS()
         let emoji = try graphemes(inputs, count: 2)
         let frames = try makeFadeFrames(
-            from: emoji[0], to: emoji[1], curve: curve, fps: fps, duration: duration, size: size
+            from: emoji[0], to: emoji[1], curve: curve, fps: fps, duration: duration,
+            size: size, supersample: supersample
         )
         let url = URL(fileURLWithPath: output)
         let delayMs = max(1, Int((1000.0 / Double(fps)).rounded()))
@@ -109,13 +113,16 @@ struct Still: ParsableCommand {
     @Option(name: .long, help: "Size in pixels (square)")
     var size: Int = 128
 
+    @Option(name: .long, help: "Internal supersampling factor for smoother output")
+    var supersample: Int = 3
+
     @Option(name: .shortAndLong, help: "Output file path")
     var output: String = "output.gif"
 
     mutating func run() throws {
         try requireMacOS()
         let emoji = try graphemes(inputs, count: 1)
-        let frame = try renderEmojiFrame(emoji[0], size: size)
+        let frame = try renderEmojiFrame(emoji[0], size: size, supersample: supersample)
         let url = URL(fileURLWithPath: output)
         try writeGIF(frames: [frame], delayMs: 0, to: url)
         print("Wrote still GIF: \(output) (\(size)x\(size), \(emoji[0]))")

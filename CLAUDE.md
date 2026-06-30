@@ -15,8 +15,10 @@ swift run supermoji still 🔴            # single emoji → static GIF, 128px
 ## Subcommands
 
 - `animate` (default) — N mixed emoji/image inputs → frame-swap GIF. Default subcommand, so a bare `supermoji 😀😃😄` still routes here. `--size 256`, `--delay 500`.
-- `fade <A> <B>` — cross-fade between exactly two emoji and back, as a seamless looping GIF. `--curve {linear,ease-in,ease-out,ease-in-out}` (default ease-in-out), `--fps 20`, `--duration 0.6` (one-way seconds), `--size 128`.
-- `still <A>` — render one emoji as a static GIF via the same renderer as `fade`, so stills and fades render at a uniform size as Slack custom emoji.
+- `fade <A> <B>` — cross-fade between exactly two emoji and back, as a seamless looping GIF. `--curve {linear,ease-in,ease-out,ease-in-out}` (default ease-in-out), `--fps 20`, `--duration 0.6` (one-way seconds), `--size 128`, `--supersample 3`.
+- `still <A>` — render one emoji as a static GIF via the same renderer as `fade`, so stills and fades render at a uniform size as Slack custom emoji. `--size 128`, `--supersample 3`.
+
+The fade is rendered and composited at a high internal working resolution (`max(size, 160) × supersample`, where 160 is Apple Color Emoji's native strike) and only the final frames are downscaled to `--size` — so the cross-dissolve and edges stay smooth. Raise `--supersample` for more anti-aliasing at the cost of render time.
 
 `fade` and `still` share `renderEmojiFrame` and default to 128px; both warn (stderr) if the output exceeds Slack's 128 KB custom-emoji limit. See `docs/plans/2026-06-29-fade-and-still-gif.md`.
 
