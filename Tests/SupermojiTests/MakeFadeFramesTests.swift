@@ -19,9 +19,20 @@ private func allBytes(_ image: CGImage) -> [UInt8] {
     #expect(frames.count == 22)
 }
 
-@Test func makeFadeFramesClampsToMinimumTwoFrames() throws {
+@Test func fadeForwardFramesNeverBelowThree() {
+    // A fade-and-return needs start→mid→end; fewer can't ping-pong back.
+    #expect(fadeForwardFrames(fps: 1, duration: 0.001) == 3)
+    #expect(fadeForwardFrames(fps: 20, duration: 0.1) == 3)   // round(2.0)=2, floored to 3
+    #expect(fadeForwardFrames(fps: 20, duration: 0.6) == 12)  // normal case unaffected
+}
+
+@Test func makeFadeFramesAlwaysIncludesReturnLeg() throws {
+    // Even the shortest fade must walk back, not hard-cut B→A on loop.
     let frames = try makeFadeFrames(from: "⚪", to: "🔵", curve: .linear, fps: 1, duration: 0.001, size: 64)
-    #expect(frames.count == 2)
+    #expect(frames.count == 4) // minimum N=3 → 2N-2
+    // The final frame is the return mid (== forward mid), not the B endpoint.
+    #expect(allBytes(frames.last!) == allBytes(frames[1]))
+    #expect(allBytes(frames.last!) != allBytes(frames[2]))
 }
 
 @Test func makeFadeFramesEndpointsMatchRenderedEmoji() throws {

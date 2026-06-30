@@ -93,8 +93,11 @@ public func blend(_ a: CGImage, _ b: CGImage, t: Double) throws -> CGImage {
 }
 
 /// Number of one-way frames (including both endpoints) for a fade.
+///
+/// Floored at 3: a fade-and-return needs start → mid → end so the ping-pong has
+/// a mirrored leg to walk back through. Fewer would loop as a hard A→B→A cut.
 public func fadeForwardFrames(fps: Int, duration: Double) -> Int {
-    max(2, Int((duration * Double(fps)).rounded()))
+    max(3, Int((duration * Double(fps)).rounded()))
 }
 
 /// Builds the full ping-pong frame sequence for a cross-fade between two emoji.
