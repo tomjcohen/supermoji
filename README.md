@@ -17,6 +17,16 @@ supermoji still 🔴 -o red.gif
 
 `fade` and `still` share one renderer, so a still and a fade endpoint of the same emoji at the same size are pixel-for-pixel identical. That lets you build progress rows or traffic lights where the active step animates and the rest are stills — all the same size in Slack.
 
+### CI pulsing buttons
+
+Tuned recipe for pulsing CI status buttons (white circle cross-fading to a colour and back). Keep `--fps` and `--duration` fixed and swap the second emoji for a consistent look across colours:
+
+```bash
+swift run supermoji fade ⚪ 🟠 -o ci-white-orange-fade.gif --fps 30 --duration 1.25
+```
+
+Other colours: replace `🟠` with e.g. `🔵`, `🟢`, or `🔴`, and rename the output file to match.
+
 ### Subcommands
 
 - **`animate`** *(default)* — cycle through emoji and/or image files as GIF frames; a single input produces a static GIF. Runs by default, so `supermoji 😀😃😄` needs no subcommand name.
